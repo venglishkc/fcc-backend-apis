@@ -96,8 +96,23 @@ app.get('/api/users/:_id/logs', function (req, res) {
   });
 });
 
+function sniffType(buf, fallback) {
+  if (buf && buf.length >= 4) {
+    if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return 'image/png';
+    if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return 'image/jpeg';
+    if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return 'image/gif';
+    if (buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46) return 'application/pdf';
+  }
+  return fallback;
+}
 app.post('/api/fileanalyse', upload.single('upfile'), function (req, res) {
-  res.json({ name: req.file.originalname, type: req.file.mimetype, size: req.file.size });
+  var f = req.file;
+  var type = f.mimetype;
+  console.log('fileanalyse incoming name=' + f.originalname + ' mimetype=' + f.mimetype + ' size=' + f.size);
+  if (!type || type === 'application/octet-stream') {
+    type = sniffType(f.buffer, type);
+  }
+  res.json({ name: f.originalname, type: type, size: f.size });
 });
 
 app.get('/api/:date?', function (req, res) {
