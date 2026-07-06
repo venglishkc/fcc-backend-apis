@@ -9,7 +9,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 const upload = multer();
-var lastFile = null;
 
 app.get('/', function (req, res) {
   var html = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>freeCodeCamp Back End and APIs</title></head><body>' +
@@ -106,12 +105,10 @@ function sniffType(buf, fallback) {
   }
   return fallback;
 }
-app.get('/api/_lastfile', function (req, res) { res.json(lastFile || { empty: true }); });
 app.post('/api/fileanalyse', upload.single('upfile'), function (req, res) {
   var f = req.file;
   var type = f.mimetype;
   if (!type || type === 'application/octet-stream') { type = sniffType(f.buffer, type); }
-  lastFile = { name: f.originalname, rawMimetype: f.mimetype, resolvedType: type, size: f.size, reqContentType: (req.headers['content-type']||'').slice(0,60), at: new Date().toISOString() };
   res.json({ name: f.originalname, type: type, size: f.size });
 });
 
