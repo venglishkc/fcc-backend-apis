@@ -4,13 +4,13 @@ const multer = require('multer');
 const dns = require('dns');
 const app = express();
 
+// Tolerate duplicate slashes in the path (e.g. a client that appends '/api/x' to a URL that already ends in '/').
+app.use(function (req, res, next) { req.url = req.url.replace(/\/{2,}/g, '/'); next(); });
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 const upload = multer();
-var debugLog = [];
-function logDebug(o){ o.at = new Date().toISOString(); debugLog.push(o); if (debugLog.length > 25) debugLog.shift(); }
 
 app.get('/', function (req, res) {
   var html = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>freeCodeCamp Back End and APIs</title></head><body>' +
@@ -107,18 +107,11 @@ function sniffType(buf, fallback) {
   }
   return fallback;
 }
-app.get('/api/_debug', function (req, res) { res.json(debugLog); });
-app.all('/api/fileanalyse', function (req, res) {
-  logDebug({ ev: 'arrived', method: req.method, ct: (req.headers['content-type'] || '').slice(0, 60), origin: (req.headers['origin'] || '').slice(0, 40) });
-  upload.single('upfile')(req, res, function (err) {
-    if (err) { logDebug({ ev: 'multer_error', code: err.code, msg: err.message }); return res.json({ error: 'upload error', detail: err.message }); }
-    var f = req.file;
-    if (!f) { logDebug({ ev: 'no_file', bodyKeys: Object.keys(req.body || {}) }); return res.json({ error: 'no file' }); }
-    var type = f.mimetype;
-    if (!type || type === 'application/octet-stream') { type = sniffType(f.buffer, type); }
-    logDebug({ ev: 'ok', name: f.originalname, rawType: f.mimetype, resolvedType: type, size: f.size });
-    res.json({ name: f.originalname, type: type, size: f.size });
-  });
+app.post('/api/fileanalyse', upload.single('upfile'), function (req, res) {
+  var f = req.file;
+  var type = f.mimetype;
+  if (!type || type === 'application/octet-stream') { type = sniffType(f.buffer, type); }
+  res.json({ name: f.originalname, type: type, size: f.size });
 });
 
 app.get('/api/:date?', function (req, res) {
