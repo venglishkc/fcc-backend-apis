@@ -4,16 +4,6 @@ const multer = require('multer');
 const dns = require('dns');
 const app = express();
 
-var reqLog = [];
-app.use(function (req, res, next) {
-  if (req.url.indexOf('/api/_debug') === -1) {
-    reqLog.push({ m: req.method, u: req.url.slice(0, 80), ct: (req.headers['content-type'] || '').slice(0, 30), o: (req.headers['origin'] || '').slice(0, 45) });
-    if (reqLog.length > 50) reqLog.shift();
-  }
-  next();
-});
-app.get('/api/_debug', function (req, res) { res.json(reqLog); });
-
 // Tolerate duplicate slashes in the path.
 app.use(function (req, res, next) { req.url = req.url.replace(/\/{2,}/g, '/'); next(); });
 app.use(cors());
